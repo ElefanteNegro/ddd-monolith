@@ -49,26 +49,5 @@ if ! docker compose exec ms-taxi24 npx ts-node prisma/seed.ts; then
   echo "⚠️ Advertencia: El seed falló, puede que los datos ya existan"
 fi
 
-# Definir tópicos de Kafka
-declare -a topics=(
-  "domain.user.created"
-  "domain.user.authenticated"
-  "domain.ride.assigned"
-)
-
-# Crear tópicos de Kafka
-echo "📦 Creando tópicos de Kafka..."
-for topic in "${topics[@]}"; do
-  echo "Creando tópico: $topic"
-  if ! docker compose exec kafka \
-    kafka-topics --create \
-    --topic "$topic" \
-    --bootstrap-server kafka:9092 \
-    --replication-factor 1 \
-    --partitions 1; then
-    echo "⚠️ Advertencia: No se pudo crear el tópico $topic, puede que ya exista"
-  fi
-done
-
 echo "✅ Inicialización completada"
 echo "🚀 El sistema está listo para usar"
