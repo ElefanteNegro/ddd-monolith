@@ -1,12 +1,13 @@
 import { DriverLocation } from '../../domain/interfaces/DriverLocationInterface';
 import { DriverLocationService as IDriverLocationService } from '../../domain/interfaces/DriverLocationService';
 import { DriverLocationRepository } from '../../domain/interfaces/DriverLocationInterface';
-import { Logger } from '@Modules/Shared/domain/interfaces/Logger';
+import { Logger } from '@Shared/domain/interfaces/Logger';
+import { container } from '@Shared/infrastructure/container';
 
 export class DriverLocationService implements IDriverLocationService {
   constructor(
     private readonly driverLocationRepository: DriverLocationRepository,
-    private readonly logger: Logger
+    private readonly logger: Logger = container.logger
   ) {}
 
   /**

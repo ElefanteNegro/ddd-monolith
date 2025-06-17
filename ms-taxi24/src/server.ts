@@ -1,16 +1,16 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import * as http from 'http';
-import httpStatus from 'http-status';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { Middleware } from '@Shared/infrastructure/middleware/middleware';
+import { ErrorHandler } from '@Shared/infrastructure/middleware/errorHandler';
 import routes from './Routes/routes';
 import { swaggerSpec, swaggerUiOptions } from './swagger';
-import WinstonLogger from '@Shared/infrastructure/WinstoneLogger';
-import Logger from '@Shared/domain/Logger';
-
-const logger: Logger = new WinstonLogger();
+import { container } from '@Shared/infrastructure/container';
+import { Logger } from '@Shared/domain/interfaces/Logger';
+import { AppError } from '@Shared/domain/exceptions/AppError';
+import { HttpResponseCodes } from '@Shared/HttpResponseCodes';
 
 export class Server {
   private express: express.Express;
@@ -20,10 +20,11 @@ export class Server {
 
   constructor(port: string) {
     this.port = port;
-    this.logger = new WinstonLogger();
+    this.logger = container.logger;
     this.express = express();
     this.setupMiddleware();
     this.setupRoutes();
+    this.setupErrorHandlers();
   }
 
   private setupMiddleware(): void {
@@ -40,27 +41,51 @@ export class Server {
 
   private setupRoutes(): void {
     this.express.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+    this.express.use(routes);
 
-    this.express.use((err: Error, _req: Request, res: Response, _next: Function) => {
-      this.logger.error(err);
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).send(err.message);
+    const errorHandler = new ErrorHandler(this.logger);
+    this.express.use(errorHandler.handle);
+  }
+
+  private setupErrorHandlers(): void {
+    process.on('unhandledRejection', (reason: any) => {
+      this.logger.error('Unhandled Rejection:', reason);
+      
+      if (!(reason instanceof AppError)) {
+        const error = new AppError(
+          reason?.message || 'An unexpected error occurred',
+          reason?.statusCode || HttpResponseCodes.INTERNAL_SERVER_ERROR,
+          reason?.code || 'INTERNAL_SERVER_ERROR'
+        );
+        this.logger.error('Converted to AppError:', error);
+      }
     });
 
-    this.express.use(routes);
+    process.on('uncaughtException', (error: Error) => {
+      this.logger.error('Uncaught Exception:', error);
+      
+      if (!(error instanceof AppError)) {
+        const appError = new AppError(
+          error.message || 'An unexpected error occurred',
+          HttpResponseCodes.INTERNAL_SERVER_ERROR,
+          'INTERNAL_SERVER_ERROR'
+        );
+        this.logger.error('Converted to AppError:', appError);
+      }
+    });
   }
 
   async listen(): Promise<void> {
     return new Promise(resolve => {
       this.httpServer = this.express.listen(this.port, () => {
-        this.logger.info(`Server running on http://localhost:${this.port} (${this.express.get('env')} mode)`);
-        this.logger.info('Press CTRL-C to stop');
-        this.logger.info(`API documentation: http://localhost:${this.port}/api-docs`);
+        this.logger.info(`Server is running at http://localhost:${this.port}`);
+        this.logger.info(`Swagger documentation available at http://localhost:${this.port}/api-docs`);
         resolve();
       });
     });
   }
 
-  getHTTPServer() {
+  getHTTPServer(): http.Server | undefined {
     return this.httpServer;
   }
 

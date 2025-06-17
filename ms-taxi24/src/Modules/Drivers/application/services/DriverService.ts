@@ -1,9 +1,6 @@
-import { Name } from '@Shared/domain/value-object/Driver/Name';
-import { LastName } from '@Shared/domain/value-object/Driver/LastName';
-import { Email } from '@Shared/domain/value-object/Email';
-import { Phone } from '@Shared/domain/value-object/Driver/Phone';
 import { Active } from '@Shared/domain/value-object/Driver/Active';
 import { Page } from '@Shared/domain/value-object/Page';
+import { Email } from '@Shared/domain/value-object/Email';
 
 import { InternalResponse } from '@Shared/dto/InternalResponse';
 import { GenericResponse } from '@Shared/dto/GenericResponse';
@@ -12,8 +9,8 @@ import { DriverInterface } from '@Modules/Drivers/model/interfaces/DriverInterfa
 import { DriverDTO } from '@Modules/Drivers/model/DriverDTO';
 
 import { DriverRepository } from '@Modules/Drivers/infrastructure/repositories/DriverRepository';
-import WinstonLogger from '@Shared/infrastructure/WinstoneLogger';
-import Logger from '@Shared/domain/Logger';
+import { Logger } from '@Shared/domain/interfaces/Logger';
+import { container } from '@Shared/infrastructure/container';
 
 import { Constants } from '@Modules/Drivers/Shared/constants';
 import { CaseUseException } from '@Shared/domain/exceptions/CaseUseException';
@@ -21,15 +18,10 @@ import { CaseUseException } from '@Shared/domain/exceptions/CaseUseException';
 import { DriverCreatedEvent } from '@Modules/Drivers/model/events/DriverCreatedEvent';
 import { DomainEventDispatcher } from '@Shared/DomainEventDispatcher';
 
-import { PrismaClient } from '@prisma/client';
-
-export class DriversService {
+export class DriverService {
   constructor(
-    private readonly driverRepository: DriverRepository = new DriverRepository(
-      new PrismaClient(),
-      new WinstonLogger()
-    ),
-    private readonly logger: Logger = new WinstonLogger()
+    private readonly driverRepository: DriverRepository,
+    private readonly logger: Logger = container.logger
   ) {}
 
   async create(
@@ -42,7 +34,7 @@ export class DriversService {
       const driver: DriverInterface = {
         id,
         userId,
-        licenseNumber: 'TEMP-LICENSE', // This should be handled properly
+        licenseNumber: 'TEMP-LICENSE',
         active: active.value
       };
 
@@ -60,10 +52,6 @@ export class DriversService {
   async update(
     driverId: string,
     data: {
-      name?: Name;
-      lastName?: LastName;
-      email?: Email;
-      phone?: Phone;
       active?: Active;
     }
   ): Promise<GenericResponse<DriverDTO>> {

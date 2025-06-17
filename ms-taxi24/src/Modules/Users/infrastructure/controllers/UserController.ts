@@ -11,38 +11,18 @@ import { CreatedAt } from '@Shared/domain/value-object/CreatedAt';
 import { Page } from '@Shared/domain/value-object/Page';
 import { Phone } from '@Shared/domain/value-object/User/Phone';
 import { HttpResponseCodes } from '@Shared/HttpResponseCodes';
-import Logger from '@Shared/domain/Logger';
-import WinstonLogger from '@Shared/infrastructure/WinstoneLogger';
-import { GeneralConstants } from '@Shared/constants';
-import { ControllerError } from '@Shared/domain/exceptions/ControllerException';
-import { UserRepository } from '../repositories/UserRepository';
-import bcrypt from 'bcrypt';
-import { PrismaClient } from '@prisma/client';
+import { Logger } from '@Shared/domain/interfaces/Logger';
 import { UserService } from '@Modules/Users/application/services/UserService';
+import { ValidationError, NotFoundError } from '@Shared/domain/exceptions/AppError';
+import bcrypt from 'bcrypt';
+import { UserRole } from '@Modules/Users/model/interfaces/UserInterface';
+import { container } from '@Shared/infrastructure/container';
 
 export class UserController {
   constructor(
-    private readonly userService: UserService = new UserService(
-      new UserRepository(new PrismaClient(), new WinstonLogger()), 
-      new WinstonLogger()
-    ),
-    private readonly logger: Logger = new WinstonLogger()
-  ) {
-    this.handleError = this.handleError.bind(this);
-  }
-
-  private handleError = (error: unknown, res: Response): void => {
-    this.logger.error(error);
-    const status = error instanceof ControllerError
-      ? HttpResponseCodes.BAD_REQUEST
-      : HttpResponseCodes.INTERNAL_SERVER_ERROR;
-    
-    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
-    res.status(status).json({ 
-      success: false,
-      message 
-    });
-  }
+    private readonly userService: UserService,
+    private readonly logger: Logger = container.logger
+  ) {}
 
   createUser = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -57,25 +37,25 @@ export class UserController {
       const phone = new Phone(req.body.phone);
       const hashedPassword = await bcrypt.hash(password.value, 10);
 
-      const response = await this.userService.create(
-        uuid.valueAsString,
-        name,
-        lastName,
-        email,
-        userName,
-        hashedPassword,
-        active,
-        createdAt,
-        phone.value
-      );
+      const response = await this.userService.create({
+        id: uuid.valueAsString,
+        name: name.value,
+        lastName: lastName.value,
+        email: email.value,
+        user: userName.value,
+        password: hashedPassword,
+        phone: phone.value,
+        role: UserRole.PASSENGER,
+        createdAt: createdAt.value
+      });
 
       if (!response.success) {
-        throw new ControllerError(response.message || 'Error creating new user', HttpResponseCodes.BAD_REQUEST);
+        throw new ValidationError(response.message || 'Error creating new user');
       }
 
       res.status(HttpResponseCodes.CREATED).json(response);
     } catch (error) {
-      this.handleError(error, res);
+      throw error;
     }
   }
 
@@ -87,14 +67,13 @@ export class UserController {
       const limit = parseInt(limitParam as string) || 10;
       const response = await this.userService.getAll(page, limit);
 
-      if (!response.success) throw new ControllerError('Error getting all users', HttpResponseCodes.BAD_REQUEST);
+      if (!response.success) {
+        throw new ValidationError('Error getting all users');
+      }
 
-      res.status(HttpResponseCodes.OK).send({
-        status: GeneralConstants.STATUS_OK,
-        users: response.data,
-      });
+      res.status(HttpResponseCodes.OK).json(response);
     } catch (error) {
-      this.handleError(error, res);
+      throw error;
     }
   }
 
@@ -103,11 +82,13 @@ export class UserController {
       const id = req.params.userId;
       const response = await this.userService.findById(id);
 
-      if (!response.success) throw new ControllerError('Error getting user by id', HttpResponseCodes.BAD_REQUEST);
+      if (!response.success) {
+        throw new NotFoundError('User not found');
+      }
 
       res.status(HttpResponseCodes.OK).json(response);
     } catch (error) {
-      this.handleError(error, res);
+      throw error;
     }
   }
 
@@ -120,11 +101,13 @@ export class UserController {
 
       const response = await this.userService.update(id, { name, lastName, password });
 
-      if (!response.success) throw new ControllerError('Error updating user', HttpResponseCodes.BAD_REQUEST);
+      if (!response.success) {
+        throw new ValidationError('Error updating user');
+      }
 
       res.status(HttpResponseCodes.OK).json(response);
     } catch (error) {
-      this.handleError(error, res);
+      throw error;
     }
   }
 
@@ -133,11 +116,13 @@ export class UserController {
       const id = req.params.userId;
       const response = await this.userService.delete(id);
 
-      if (!response.success) throw new ControllerError('Error deleting user', HttpResponseCodes.BAD_REQUEST);
+      if (!response.success) {
+        throw new ValidationError('Error deleting user');
+      }
 
       res.status(HttpResponseCodes.OK).json(response);
     } catch (error) {
-      this.handleError(error, res);
+      throw error;
     }
   }
 
@@ -145,13 +130,15 @@ export class UserController {
     try {
       const email = new Email(req.body.email);
       const password = req.body.password;
-      const response = await this.userService.authenticate(email, password);
+      const response = await this.userService.authenticate(email.value, password);
 
-      if (!response.success) throw new ControllerError('Error authenticating user', HttpResponseCodes.BAD_REQUEST);
+      if (!response.success) {
+        throw new ValidationError('Invalid credentials');
+      }
 
       res.status(HttpResponseCodes.OK).json(response);
     } catch (error) {
-      this.handleError(error, res);
+      throw error;
     }
   }
 } 

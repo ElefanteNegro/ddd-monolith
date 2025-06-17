@@ -1,24 +1,30 @@
 import { PassengerRepository } from '@Modules/Passengers/infrastructure/repositories/PassengerRepository';
 import { GenericResponse } from '@Shared/dto/GenericResponse';
-import { PassengerDTO } from '@Modules/Passengers/model/PassagerDTO';
-import { Logger } from '@Modules/Shared/domain/interfaces/Logger';
-import WinstonLogger from '@Modules/Shared/infrastructure/WinstoneLogger';
+import { PassengerDTO } from '@Modules/Passengers/model/PassengerDTO';
+import { Logger } from '@Shared/domain/interfaces/Logger';
+import { container } from '@Shared/infrastructure/container';
 import { CaseUseException } from '@Shared/domain/exceptions/CaseUseException';
 import { PassengerInterface } from '@Modules/Passengers/model/interfaces/PassengerInterface';
+import { NotFoundError } from '@Shared/domain/exceptions/AppError';
 
 export class PassengerService {
   constructor(
     private readonly passengerRepository: PassengerRepository,
-    private readonly logger: Logger = new WinstonLogger()
+    private readonly logger: Logger = container.logger
   ) {}
 
   async create(userId: string): Promise<GenericResponse<PassengerDTO>> {
     try {
-      const passenger: PassengerInterface = {
-        userId
+      const passenger: Omit<PassengerInterface, 'id'> = {
+        userId,
+        isActive: true
       };
 
-      return await this.passengerRepository.create(passenger);
+      const result = await this.passengerRepository.save(passenger);
+      return {
+        success: true,
+        data: result
+      };
     } catch (error) {
       this.logger.error(error);
       throw new CaseUseException('Error creating passenger');
@@ -27,7 +33,11 @@ export class PassengerService {
 
   async getAll(): Promise<GenericResponse<PassengerDTO[]>> {
     try {
-      return await this.passengerRepository.getAll();
+      const result = await this.passengerRepository.getAll();
+      return {
+        success: true,
+        data: result.data
+      };
     } catch (error) {
       this.logger.error(error);
       return { success: false, message: 'Error fetching passengers' };
@@ -36,7 +46,14 @@ export class PassengerService {
 
   async getById(id: string): Promise<GenericResponse<PassengerDTO>> {
     try {
-      return await this.passengerRepository.getById(id);
+      const result = await this.passengerRepository.findById(id);
+      if (!result) {
+        throw new NotFoundError('Passenger not found');
+      }
+      return {
+        success: true,
+        data: result
+      };
     } catch (error) {
       this.logger.error(error);
       throw new CaseUseException('Error fetching passenger by ID');

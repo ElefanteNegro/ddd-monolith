@@ -1,220 +1,135 @@
 import { Request, Response } from 'express';
-import { DriverLocationService } from '../../application/services/DriverLocationService';
-import { Logger } from '@Modules/Shared/domain/interfaces/Logger';
+import { HttpResponseCodes } from '@Shared/HttpResponseCodes';
+import { ValidationError } from '@Shared/domain/exceptions/AppError';
+import { DriverLocationService } from '@Modules/DriverLocation/application/services/DriverLocationService';
+import { Logger } from '@Shared/domain/interfaces/Logger';
+import { container } from '@Shared/infrastructure/container';
 
 export class DriverLocationController {
   constructor(
     private readonly driverLocationService: DriverLocationService,
-    private readonly logger: Logger
+    private readonly logger: Logger = container.logger
   ) {}
 
-  private handleError(error: any, res: Response, message: string): void {
-    this.logger.error(message, error);
-    res.status(500).json({
-      success: false,
-      message: message
-    });
-  }
-
-  /**
-   * Encuentra los conductores más cercanos a una ubicación
-   * GET /driver-location/nearby?longitude=X&latitude=Y&limit=3&onlyAvailable=true
-   */
   async findNearestDrivers(req: Request, res: Response): Promise<void> {
-    this.logger.info('Finding nearest drivers');
     try {
       const { longitude, latitude, limit, onlyAvailable } = req.query;
 
       if (!longitude || !latitude) {
-        res.status(400).json({
-          success: false,
-          message: 'Longitude and latitude are required'
-        });
-        return;
+        throw new ValidationError('Longitude and latitude are required');
       }
 
-      const parsedLongitude = Number(longitude);
-      const parsedLatitude = Number(latitude);
-      const parsedLimit = limit ? Number(limit) : 3; // Por defecto 3 conductores
-      const parsedOnlyAvailable = onlyAvailable === 'true';
-
-      if (isNaN(parsedLongitude) || isNaN(parsedLatitude)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid longitude or latitude values'
-        });
-        return;
-      }
-
-      const drivers = await this.driverLocationService.getNearestDrivers(
-        parsedLongitude,
-        parsedLatitude,
-        parsedLimit,
-        parsedOnlyAvailable
+      const response = await this.driverLocationService.getNearestDrivers(
+        Number(longitude),
+        Number(latitude),
+        limit ? Number(limit) : 3,
+        onlyAvailable === 'true'
       );
 
-      if (!drivers || drivers.length === 0) {
-        res.status(404).json({
-          success: false,
-          message: 'No drivers found in the area'
-        });
-        return;
-      }
-
-      res.json({
+      res.status(HttpResponseCodes.OK).json({
         success: true,
-        data: drivers
+        data: response
       });
     } catch (error) {
-      this.handleError(error, res, 'Error finding nearest drivers');
+      this.logger.error(error);
+      throw error;
     }
   }
 
-  /**
-   * Obtiene la ubicación actual de un conductor específico
-   * GET /driver-location/:driverId
-   */
   async getDriverLocation(req: Request, res: Response): Promise<void> {
     try {
       const { driverId } = req.params;
 
       if (!driverId) {
-        res.status(400).json({
-          success: false,
-          message: 'Driver ID is required'
-        });
-        return;
+        throw new ValidationError('Driver ID is required');
       }
 
       const location = await this.driverLocationService.getDriverLocation(driverId);
       if (!location) {
-        res.status(404).json({
+        res.status(HttpResponseCodes.NOT_FOUND).json({
           success: false,
-          message: 'Driver location not found'
+          message: 'Driver location not found. The driver may not have updated their location yet.',
+          code: 'NOT_FOUND'
         });
         return;
       }
 
-      res.json({
+      res.status(HttpResponseCodes.OK).json({
         success: true,
         data: location
       });
     } catch (error) {
-      this.handleError(error, res, 'Error getting driver location');
+      this.logger.error(error);
+      throw error;
     }
   }
 
-  /**
-   * Actualiza la ubicación y disponibilidad de un conductor
-   * PUT /driver-location/:driverId
-   */
   async updateDriverLocation(req: Request, res: Response): Promise<void> {
     try {
       const { driverId } = req.params;
       const { latitude, longitude, isAvailable } = req.body;
 
       if (!driverId) {
-        res.status(400).json({
-          success: false,
-          message: 'Driver ID is required'
-        });
-        return;
+        throw new ValidationError('Driver ID is required');
       }
 
-      if (!latitude || !longitude || typeof isAvailable !== 'boolean') {
-        res.status(400).json({
-          success: false,
-          message: 'Latitude, longitude and isAvailable are required'
-        });
-        return;
-      }
-
-      const parsedLatitude = Number(latitude);
-      const parsedLongitude = Number(longitude);
-
-      if (isNaN(parsedLatitude) || isNaN(parsedLongitude)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid latitude or longitude values'
-        });
-        return;
+      if (longitude === undefined || latitude === undefined || typeof isAvailable !== 'boolean') {
+        throw new ValidationError('Longitude, latitude and isAvailable are required');
       }
 
       await this.driverLocationService.updateDriverLocation(
         driverId,
-        parsedLatitude,
-        parsedLongitude,
+        latitude,
+        longitude,
         isAvailable
       );
 
-      res.json({
+      res.status(HttpResponseCodes.OK).json({
         success: true,
         message: 'Driver location updated successfully'
       });
     } catch (error) {
-      this.handleError(error, res, 'Error updating driver location');
+      this.logger.error(error);
+      throw error;
     }
   }
 
-  /**
-   * Actualiza solo la disponibilidad de un conductor
-   * PATCH /driver-location/:driverId/availability
-   */
   async updateDriverAvailability(req: Request, res: Response): Promise<void> {
     try {
       const { driverId } = req.params;
       const { isAvailable } = req.body;
 
       if (!driverId) {
-        res.status(400).json({
-          success: false,
-          message: 'Driver ID is required'
-        });
-        return;
+        throw new ValidationError('Driver ID is required');
       }
 
       if (typeof isAvailable !== 'boolean') {
-        res.status(400).json({
-          success: false,
-          message: 'isAvailable must be a boolean value'
-        });
-        return;
+        throw new ValidationError('isAvailable must be a boolean value');
       }
 
       await this.driverLocationService.updateDriverAvailability(driverId, isAvailable);
 
-      res.json({
+      res.status(HttpResponseCodes.OK).json({
         success: true,
         message: 'Driver availability updated successfully'
       });
     } catch (error) {
-      this.handleError(error, res, 'Error updating driver availability');
+      this.logger.error(error);
+      throw error;
     }
   }
 
-  /**
-   * Actualiza el estado completo de un conductor
-   * PATCH /driver-location/:driverId/status
-   */
   async updateDriverStatus(req: Request, res: Response): Promise<void> {
     try {
       const { driverId } = req.params;
       const { isActive, isFree } = req.body;
 
       if (!driverId) {
-        res.status(400).json({
-          success: false,
-          message: 'Driver ID is required'
-        });
-        return;
+        throw new ValidationError('Driver ID is required');
       }
 
       if (typeof isActive !== 'boolean' || typeof isFree !== 'boolean') {
-        res.status(400).json({
-          success: false,
-          message: 'isActive and isFree must be boolean values'
-        });
-        return;
+        throw new ValidationError('isActive and isFree must be boolean values');
       }
 
       await this.driverLocationService.updateDriverStatus(driverId, isActive, isFree);
@@ -224,34 +139,28 @@ export class DriverLocationController {
         message: 'Driver status updated successfully'
       });
     } catch (error) {
-      this.handleError(error, res, 'Error updating driver status');
+      this.logger.error(error);
+      throw error;
     }
   }
 
-  /**
-   * Elimina un conductor del sistema de ubicaciones
-   * DELETE /driver-location/:driverId
-   */
   async removeDriver(req: Request, res: Response): Promise<void> {
     try {
       const { driverId } = req.params;
 
       if (!driverId) {
-        res.status(400).json({
-          success: false,
-          message: 'Driver ID is required'
-        });
-        return;
+        throw new ValidationError('Driver ID is required');
       }
 
       await this.driverLocationService.removeDriver(driverId);
 
-      res.json({
+      res.status(HttpResponseCodes.OK).json({
         success: true,
         message: 'Driver removed successfully'
       });
     } catch (error) {
-      this.handleError(error, res, 'Error removing driver');
+      this.logger.error(error);
+      throw error;
     }
   }
 } 

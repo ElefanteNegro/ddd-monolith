@@ -22,6 +22,21 @@ const options: swaggerJsdoc.Options = {
           scheme: 'bearer',
           bearerFormat: 'JWT'
         }
+      },
+      schemas: {
+        Error: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: false
+            },
+            message: {
+              type: 'string',
+              example: 'Error message'
+            }
+          }
+        }
       }
     },
     security: [
@@ -31,8 +46,7 @@ const options: swaggerJsdoc.Options = {
     ]
   },
   apis: [
-    './src/Modules/*/infrastructure/controllers/*.ts',
-    './src/Modules/*/infrastructure/swagger/*.ts',
+    './src/Modules/*/infrastructure/swagger/*.swagger.ts'
   ],
 };
 
@@ -41,4 +55,5 @@ export const swaggerSpec = swaggerJsdoc(options);
 export const swaggerUiOptions = {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'Taxi24 API Documentation',
+  explorer: true
 };

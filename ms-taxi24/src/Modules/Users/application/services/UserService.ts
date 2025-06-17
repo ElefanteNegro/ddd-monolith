@@ -1,17 +1,18 @@
 import { InternalResponse } from '@Shared/dto/InternalResponse';
 import { GenericResponse } from '@Shared/dto/GenericResponse';
 
-import Logger from '@Shared/domain/Logger';
 import { UserRepository } from '@Modules/Users/infrastructure/repositories/UserRepository';
 import { UserDTO } from '@Modules/Users/model/UserDTO';
 import { UserInterface } from '@Modules/Users/model/interfaces/UserInterface';
 import { User } from '@Modules/Users/model/User';
 import { Page } from '@Shared/domain/value-object/Page';
+import { Logger } from '@Shared/domain/interfaces/Logger';
+import { container } from '@Shared/infrastructure/container';
 
 export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly logger: Logger
+    private readonly logger: Logger = container.logger
   ) {}
 
   async findById(id: string): Promise<GenericResponse<UserDTO>> {

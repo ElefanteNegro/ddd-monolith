@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaClientInterface } from './interfaces/PrismaClientInterface';
 
 export class PrismaSingleton implements PrismaClientInterface {
@@ -25,26 +25,26 @@ export class PrismaSingleton implements PrismaClientInterface {
   get invoice() { return this.client.invoice; }
 
   // Métodos de conexión
-  async connect(): Promise<void> {
+  async $connect(): Promise<void> {
     await this.client.$connect();
   }
 
-  async disconnect(): Promise<void> {
+  async $disconnect(): Promise<void> {
     await this.client.$disconnect();
   }
 
   // Métodos de transacción
-  async transaction<T>(fn: (tx: PrismaClient) => Promise<T>): Promise<T> {
+  async $transaction<T>(fn: (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => Promise<T>): Promise<T> {
     return this.client.$transaction(fn);
   }
 
   // Métodos de eventos
-  on(event: string, callback: (e: any) => void): void {
-    this.client.$on(event, callback);
+  $on(event: Prisma.LogLevel | Prisma.LogDefinition, callback: (e: Prisma.LogEvent) => void): void {
+    (this.client.$on as any)(event, callback);
   }
 
   // Métodos de middleware
-  use(middleware: any): void {
+  $use(middleware: Prisma.Middleware): void {
     this.client.$use(middleware);
   }
 }
