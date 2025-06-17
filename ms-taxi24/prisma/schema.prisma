@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(uuid())
+  name      String
+  lastName  String
+  email     String     @unique
+  user      String     @unique
+  password  String
+  phone     String
+  createdAt DateTime   @default(now())
+  role      UserRole   @default(PASSENGER)
+  driver    Driver?
+  passenger Passenger?
+
+  @@map("users")
+}
+
+model Driver {
+  id     String  @id @default(uuid())
+  active Boolean @default(true)
+  userId String  @unique
+  car    Car?
+  user   User    @relation(fields: [userId], references: [id])
+  trips  Trip[]
+
+  @@map("drivers")
+}
+
+model Passenger {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+  trips  Trip[]
+
+  @@map("passengers")
+}
+
+model Car {
+  id        String   @id @default(uuid())
+  plate     String   @unique
+  brand     String
+  model     String
+  year      Int
+  color     String
+  driverId  String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  driver    Driver   @relation(fields: [driverId], references: [id])
+
+  @@map("cars")
+}
+
+model Trip {
+  id          String     @id @default(uuid())
+  origin      String
+  destination String
+  status      TripStatus
+  fare        Float
+  driverId    String
+  passengerId String
+  createdAt   DateTime   @default(now())
+  completedAt DateTime?
+  cancelledAt DateTime?
+  invoice     Invoice?
+  driver      Driver     @relation(fields: [driverId], references: [id])
+  passenger   Passenger  @relation(fields: [passengerId], references: [id])
+
+  @@map("trips")
+}
+
+model Invoice {
+  id       String   @id @default(uuid())
+  tripId   String   @unique
+  amount   Float
+  issuedAt DateTime @default(now())
+  trip     Trip     @relation(fields: [tripId], references: [id])
+
+  @@map("invoices")
+}
+
+enum TripStatus {
+  REQUESTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum UserRole {
+  PASSENGER
+  DRIVER
+  BOTH
+}
