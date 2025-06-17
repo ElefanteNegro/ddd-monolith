@@ -127,7 +127,7 @@ services:
       - /src/node_modules
     networks:
       - taxi24-network
-    command: npm run dev
+    command: npm run start:dev
 
 networks:
   taxi24-network:

@@ -39,25 +39,22 @@ export class Server {
   }
 
   private setupRoutes(): void {
-    // Documentación Swagger
     this.express.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
-    // Manejador de errores global
     this.express.use((err: Error, _req: Request, res: Response, _next: Function) => {
       this.logger.error(err);
       res.status(httpStatus.INTERNAL_SERVER_ERROR).send(err.message);
     });
 
-    // Rutas de la API
     this.express.use(routes);
   }
 
   async listen(): Promise<void> {
     return new Promise(resolve => {
       this.httpServer = this.express.listen(this.port, () => {
-        this.logger.info(`  Server is running at http://localhost:${this.port} in ${this.express.get('env')} mode`);
-        this.logger.info('  Press CTRL-C to stop\n');
-        this.logger.info(`  Swagger documentation available at http://localhost:${this.port}/api-docs`);
+        this.logger.info(`Server running on http://localhost:${this.port} (${this.express.get('env')} mode)`);
+        this.logger.info('Press CTRL-C to stop');
+        this.logger.info(`API documentation: http://localhost:${this.port}/api-docs`);
         resolve();
       });
     });

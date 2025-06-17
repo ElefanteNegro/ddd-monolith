@@ -7,12 +7,12 @@ const options: swaggerJsdoc.Options = {
     info: {
       title: 'Taxi24 API',
       version: packageJson.version,
-      description: 'API para el sistema de Taxi24',
+      description: 'RESTful API for the Taxi24 ride-hailing platform',
     },
     servers: [
       {
         url: 'http://localhost:3000',
-        description: 'Servidor de desarrollo',
+        description: 'Development server',
       },
     ],
     components: {

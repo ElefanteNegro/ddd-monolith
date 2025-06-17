@@ -52,28 +52,28 @@
  *         required: true
  *         schema:
  *           type: number
- *         description: Longitud de la ubicación (ej: -3.703790 para Madrid)
+ *         description: "Longitud de la ubicación (ej: -3.703790 para Madrid)"
  *         example: -3.703790
  *       - in: query
  *         name: latitude
  *         required: true
  *         schema:
  *           type: number
- *         description: Latitud de la ubicación (ej: 40.416775 para Madrid)
+ *         description: "Latitud de la ubicación (ej: 40.416775 para Madrid)"
  *         example: 40.416775
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 3
- *         description: Número máximo de conductores a retornar (máximo 10)
+ *         description: "Número máximo de conductores a retornar (máximo 10)"
  *         example: 3
  *       - in: query
  *         name: onlyAvailable
  *         schema:
  *           type: boolean
  *           default: true
- *         description: Si se deben retornar solo conductores disponibles
+ *         description: "Si se deben retornar solo conductores disponibles"
  *         example: true
  *     responses:
  *       200:
@@ -130,7 +130,7 @@
  *         required: true
  *         schema:
  *           type: string
- *         description: ID del conductor
+ *         description: "ID del conductor"
  *     responses:
  *       200:
  *         description: Ubicación del conductor
@@ -171,7 +171,7 @@
  *         required: true
  *         schema:
  *           type: string
- *         description: ID del conductor
+ *         description: "ID del conductor"
  *     requestBody:
  *       required: true
  *       content:
@@ -203,9 +203,8 @@
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Driver location updated successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/DriverLocation'
  *       400:
  *         description: Error en los datos de entrada
  *         content:
@@ -218,7 +217,20 @@
  *                   example: false
  *                 message:
  *                   type: string
- *                   example: "Latitude, longitude and isAvailable are required"
+ *                   example: "Invalid input data"
+ *       404:
+ *         description: Conductor no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Driver not found"
  */
 
 /**

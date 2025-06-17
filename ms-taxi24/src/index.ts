@@ -8,34 +8,30 @@ const PORT = process.env.PORT || '3000';
 
 async function main() {
   try {
-    // Conectar a Prisma
     await prisma.connect();
-    console.log('Database connection established');
+    console.log('Database connection established successfully');
 
-    // Iniciar otros servicios
     await connectKafkaProducer();
     await startKafkaConsumer(); 
     registerDomainEvents();
 
     const server = new Server(PORT);
     await server.listen();
-    console.log(`Server running on port ${PORT}`);
 
-    // Manejar el cierre de la aplicación
     process.on('SIGINT', async () => {
-      console.log('Shutting down server...');
+      console.log('Initiating graceful shutdown...');
       await prisma.disconnect();
       process.exit(0);
     });
 
     process.on('SIGTERM', async () => {
-      console.log('Shutting down server...');
+      console.log('Initiating graceful shutdown...');
       await prisma.disconnect();
       process.exit(0);
     });
 
   } catch (error) {
-    console.error('Error starting the server:', error);
+    console.error('Failed to start server:', error);
     await prisma.disconnect();
     process.exit(1);
   }
