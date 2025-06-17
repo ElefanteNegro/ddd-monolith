@@ -9,25 +9,57 @@ enum Levels {
 }
 
 class WinstonLogger implements Logger {
+  private static instance: WinstonLogger;
   private logger: WinstonLoggerType;
 
-  constructor() {
+  private constructor() {
     this.logger = winston.createLogger({
+      level: process.env.LOG_LEVEL || 'info',
       format: winston.format.combine(
+        winston.format.timestamp(),
         winston.format.prettyPrint(),
         winston.format.errors({ stack: true }),
         winston.format.splat(),
         winston.format.colorize(),
-        winston.format.simple()
+        winston.format.printf(({ timestamp, level, message, ...meta }) => {
+          return `${timestamp} [${level}]: ${message} ${Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''}`;
+        })
       ),
       transports: [
         new winston.transports.Console(),
-        new winston.transports.File({ filename: `logs/${Levels.DEBUG}.log`, level: Levels.DEBUG }),
-        new winston.transports.File({ filename: `logs/${Levels.ERROR}.log`, level: Levels.ERROR }),
-        new winston.transports.File({ filename: `logs/${Levels.INFO}.log`, level: Levels.INFO }),
-        new winston.transports.File({ filename: `logs/${Levels.WARN}.log`, level: Levels.WARN })
+        new winston.transports.File({ 
+          filename: `logs/${Levels.DEBUG}.log`, 
+          level: Levels.DEBUG,
+          maxsize: 5242880, // 5MB
+          maxFiles: 5
+        }),
+        new winston.transports.File({ 
+          filename: `logs/${Levels.ERROR}.log`, 
+          level: Levels.ERROR,
+          maxsize: 5242880, // 5MB
+          maxFiles: 5
+        }),
+        new winston.transports.File({ 
+          filename: `logs/${Levels.INFO}.log`, 
+          level: Levels.INFO,
+          maxsize: 5242880, // 5MB
+          maxFiles: 5
+        }),
+        new winston.transports.File({ 
+          filename: `logs/${Levels.WARN}.log`, 
+          level: Levels.WARN,
+          maxsize: 5242880, // 5MB
+          maxFiles: 5
+        })
       ]
     });
+  }
+
+  public static getInstance(): WinstonLogger {
+    if (!WinstonLogger.instance) {
+      WinstonLogger.instance = new WinstonLogger();
+    }
+    return WinstonLogger.instance;
   }
 
   debug(message: string, ...args: any[]): void {
@@ -35,7 +67,8 @@ class WinstonLogger implements Logger {
   }
 
   error(message: string | Error, ...args: any[]): void {
-    this.logger.error(message, ...args);
+    const errorMessage = message instanceof Error ? message.message : message;
+    this.logger.error(errorMessage, ...args);
   }
 
   info(message: string, ...args: any[]): void {

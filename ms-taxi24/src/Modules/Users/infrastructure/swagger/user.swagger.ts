@@ -46,6 +46,11 @@
  *           type: boolean
  *           description: Estado del usuario
  *           example: true
+ *         role:
+ *           type: string
+ *           enum: [PASSENGER, DRIVER]
+ *           description: Rol del usuario (PASSENGER o DRIVER)
+ *           example: PASSENGER
  *       example:
  *         id: "98f57728-3180-4e98-ab0e-0335e8140733"
  *         name: John
@@ -55,6 +60,7 @@
  *         password: Password123!
  *         phone: "1234567890"
  *         active: true
+ *         role: PASSENGER
  *     UserResponse:
  *       type: object
  *       properties:
@@ -85,6 +91,10 @@
  *             active:
  *               type: boolean
  *               example: true
+ *             role:
+ *               type: string
+ *               enum: [PASSENGER, DRIVER]
+ *               example: PASSENGER
  *             createdAt:
  *               type: string
  *               format: date-time
@@ -99,6 +109,7 @@
  *           email: john.doe@example.com
  *           user: johndoe
  *           active: true
+ *           role: PASSENGER
  *           createdAt: "2025-05-29T14:19:30.714Z"
  */
 
@@ -122,6 +133,7 @@
  *             password: Password123!
  *             phone: "1234567890"
  *             active: true
+ *             role: PASSENGER
  *     responses:
  *       201:
  *         description: Usuario creado exitosamente
@@ -139,6 +151,7 @@
  *                 email: john.doe@example.com
  *                 user: johndoe
  *                 active: true
+ *                 role: PASSENGER
  *                 createdAt: "2025-05-29T14:19:30.714Z"
  *       400:
  *         description: Error en la validación o datos inválidos

@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { HealthController } from '../controllers/HealthController';
-import WinstonLogger from '@Shared/infrastructure/WinstoneLogger';
+import { container } from '@Shared/infrastructure/container';
+import { asyncHandler } from '@Shared/infrastructure/middleware/asyncHandler';
 
 const router = Router();
-const logger = new WinstonLogger();
+const { logger } = container;
 const healthController = new HealthController(logger);
 
-router.get('/health', (req, res) => healthController.check(req, res));
+router.get('/health', asyncHandler((req, res) => healthController.check(req, res)));
 
 export default router; 

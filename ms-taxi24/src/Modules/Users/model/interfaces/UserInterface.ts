@@ -13,5 +13,6 @@ export interface UserInterface {
   password: string;
   phone: string;
   role?: UserRole;
+  active?: boolean;
   createdAt?: Date;
 }

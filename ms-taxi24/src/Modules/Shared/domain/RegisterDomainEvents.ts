@@ -1,21 +1,49 @@
 import { DomainEventDispatcher } from '@Shared/DomainEventDispatcher';
-import { UserCreatedEvent } from '@Modules/Users/model/events/UserCreatedEvent';
-import { handleUserCreated } from '@Modules/Users/application/handlers/UserCreatedHandler';
+import { DriverUserCreatedEvent } from '@Modules/Users/model/events/DriverUserCreatedEvent';
+import { PassengerUserCreatedEvent } from '@Modules/Users/model/events/PassengerUserCreatedEvent';
 import { TripCreatedEvent } from '@Modules/Trips/model/events/TripCreatedEvent';
 import { TripStatusChangedEvent } from '@Modules/Trips/model/events/TripStatusChangedEvent';
+import { handleDriverUserCreated } from '@Modules/Drivers/application/handlers/UserCreatedHandler';
+import { handlePassengerUserCreated } from '@Modules/Passengers/application/handlers/UserCreatedHandler';
 import { handleTripCreated } from '@Modules/Trips/application/handlers/TripCreatedHandler';
 import { handleTripStatusChanged } from '@Modules/Trips/application/handlers/TripStatusChangedHandler';
-import WinstonLogger from '@Modules/Shared/infrastructure/WinstoneLogger';
+import { DriverService } from '@Modules/Drivers/application/services/DriverService';
+import { DriverRepository } from '@Modules/Drivers/infrastructure/repositories/DriverRepository';
+import { PassengerService } from '@Modules/Passengers/application/services/PassengerService';
+import { PassengerRepository } from '@Modules/Passengers/infrastructure/repositories/PassengerRepository';
+import { container } from '@Shared/infrastructure/container';
 
 export const registerDomainEvents = (): void => {
-  console.log('[DomainEvents] Registering domain event handlers...');
+  const { logger, prisma } = container;
   
-  const logger = new WinstonLogger();
+  // Initialize repositories
+  const driverRepository = new DriverRepository(prisma, logger);
+  const passengerRepository = new PassengerRepository(prisma, logger);
   
-  // User events
-  DomainEventDispatcher.register<UserCreatedEvent>('UserCreatedEvent', handleUserCreated);
+  // Initialize services
+  const driverService = new DriverService(driverRepository, logger);
+  const passengerService = new PassengerService(passengerRepository, logger);
   
-  // Trip events
-  DomainEventDispatcher.register<TripCreatedEvent>('TripCreatedEvent', handleTripCreated);
-  DomainEventDispatcher.register<TripStatusChangedEvent>('TripStatusChangedEvent', handleTripStatusChanged);
+  // Register event handlers
+  DomainEventDispatcher.register<DriverUserCreatedEvent>(
+    'DriverUserCreatedEvent', 
+    handleDriverUserCreated(driverService, logger)
+  );
+  
+  DomainEventDispatcher.register<PassengerUserCreatedEvent>(
+    'PassengerUserCreatedEvent', 
+    handlePassengerUserCreated(passengerService, logger)
+  );
+  
+  DomainEventDispatcher.register<TripCreatedEvent>(
+    'TripCreatedEvent', 
+    handleTripCreated
+  );
+  
+  DomainEventDispatcher.register<TripStatusChangedEvent>(
+    'TripStatusChangedEvent', 
+    handleTripStatusChanged
+  );
+  
+  logger.info('Domain event handlers registered successfully');
 };

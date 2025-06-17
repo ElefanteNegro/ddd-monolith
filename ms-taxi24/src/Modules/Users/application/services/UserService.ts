@@ -8,6 +8,10 @@ import { User } from '@Modules/Users/model/User';
 import { Page } from '@Shared/domain/value-object/Page';
 import { Logger } from '@Shared/domain/interfaces/Logger';
 import { container } from '@Shared/infrastructure/container';
+import { DomainEventDispatcher } from '@Shared/DomainEventDispatcher';
+import { UserCreatedEvent } from '@Modules/Users/model/events/UserCreatedEvent';
+import { DriverUserCreatedEvent } from '@Modules/Users/model/events/DriverUserCreatedEvent';
+import { PassengerUserCreatedEvent } from '@Modules/Users/model/events/PassengerUserCreatedEvent';
 
 export class UserService {
   constructor(
@@ -48,6 +52,14 @@ export class UserService {
       const user = new User(userData);
       await user.setPassword(userData.password);
       await this.userRepository.save(userData);
+      
+      // Publicar el evento específico según el rol
+      if (userData.role === 'DRIVER') {
+        await DomainEventDispatcher.dispatch(new DriverUserCreatedEvent(userData));
+      } else if (userData.role === 'PASSENGER') {
+        await DomainEventDispatcher.dispatch(new PassengerUserCreatedEvent(userData));
+      }
+      
       return { success: true, message: 'User created successfully' };
     } catch (error) {
       this.logger.error(error);
