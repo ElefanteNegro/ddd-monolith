@@ -4,9 +4,6 @@ import { DriverService } from '../services/DriverService';
 import { Email } from '@Shared/domain/value-object/Email';
 import { Active } from '@Shared/domain/value-object/Driver/Active';
 import { v4 as uuidv4 } from 'uuid';
-import { DomainEventDispatcher } from '@Shared/DomainEventDispatcher';
-import { DriverCreationFailedEvent } from '@Modules/Drivers/model/events/DriverCreationFailedEvent';
-import { UserMapper } from '@Modules/Users/model/Mappers/UserMapper';
 import { kafkaProducer } from '@Shared/infrastructure/kafka/producer';
 
 export const handleDriverUserCreated = (driverService: DriverService, logger: Logger) => 
@@ -33,7 +30,7 @@ export const handleDriverUserCreated = (driverService: DriverService, logger: Lo
         eventId: id
       });
 
-      const result = await driverService.create(id, email, active, event.user.id);
+      const result = await driverService.create(id, email, active, event.user.id!);
       
       if (!result.success) {
         throw new Error(result.message || 'Error creating driver');
@@ -45,25 +42,6 @@ export const handleDriverUserCreated = (driverService: DriverService, logger: Lo
         eventId: id
       });
 
-      // Intentar publicar en Kafka después de crear el driver exitosamente
-      try {
-        await kafkaProducer.send({
-          topic: 'DriverUserCreatedEvent',
-          messages: [
-            { value: JSON.stringify(event) }
-          ]
-        });
-        logger.info('UserCreatedHandler.handle - Evento publicado en Kafka', {
-          userId: event.user.id,
-          topic: 'DriverUserCreatedEvent'
-        });
-      } catch (kafkaError) {
-        logger.error('UserCreatedHandler.handle - Error publicando en Kafka', {
-          error: kafkaError instanceof Error ? kafkaError.message : 'Unknown error',
-          userId: event.user.id
-        });
-        // No lanzamos el error para no afectar el flujo principal
-      }
     } catch (error) {
       logger.error('UserCreatedHandler.handle - Error al procesar evento DriverUserCreated', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -71,8 +49,10 @@ export const handleDriverUserCreated = (driverService: DriverService, logger: Lo
         userId: event.user.id
       });
       
-      // Convertir el usuario a DTO antes de crear el evento
-      const userDTO = UserMapper.toDTO(event.user);
-      await DomainEventDispatcher.dispatch(new DriverCreationFailedEvent(userDTO));
+      // Publicar el evento de fallo en Kafka
+      await kafkaProducer.send({
+        topic: 'DriverCreationFailedEvent',
+        messages: [{ value: JSON.stringify(event) }]
+      });
     }
   }; 

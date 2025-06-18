@@ -2,6 +2,7 @@ import { Server } from './server';
 import { connectKafkaProducer } from '@Shared/infrastructure/kafka/producer';
 import { startKafkaConsumer } from '@Shared/infrastructure/kafka/consumer';
 import { registerDomainEvents } from '@Shared/domain/RegisterDomainEvents';
+import { registerDriverKafkaHandlers } from '@Modules/Drivers/infrastructure/kafka/registerHandlers';
 import { prisma } from '@Modules/Shared/infrastructure/prisma/client';
 import { container } from '@Shared/infrastructure/container';
 
@@ -14,6 +15,13 @@ async function main() {
     logger.info('Database connection established successfully');
 
     await connectKafkaProducer();
+    
+    // Registrar handlers de Kafka de cada dominio antes de iniciar el consumer
+    registerDriverKafkaHandlers();
+    // Aquí se pueden registrar handlers de otros dominios
+    // registerPassengerKafkaHandlers();
+    // registerTripKafkaHandlers();
+    
     await startKafkaConsumer(); 
     registerDomainEvents();
 
