@@ -83,7 +83,7 @@ services:
       retries: 5
 
   kafka-ui:
-    image: provectuslabs/kafka-ui:latest
+    image: provectuslabs/kafka-ui:v0.7.1
     container_name: kafka-ui_taxi24
     depends_on:
       kafka:
