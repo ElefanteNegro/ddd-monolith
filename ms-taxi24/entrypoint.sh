@@ -53,6 +53,9 @@ declare -a topics=(
     "domain.user.created"
     "domain.user.authenticated"
     "domain.ride.assigned"
+    "DriverUserCreatedEvent"
+    "DriverCreatedEvent"
+    "DriverCreationFailedEvent"
 )
 
 for topic in "${topics[@]}"; do

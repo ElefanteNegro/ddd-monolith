@@ -3,8 +3,8 @@ import * as http from 'http';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
-import { Middleware } from '@Shared/infrastructure/middleware/middleware';
 import { ErrorHandler } from '@Shared/infrastructure/middleware/errorHandler';
+import { requestLogger } from '@Shared/infrastructure/middleware/requestLogger';
 import routes from './Routes/routes';
 import { swaggerSpec, swaggerUiOptions } from './swagger';
 import { container } from '@Shared/infrastructure/container';
@@ -36,7 +36,7 @@ export class Server {
     }));
     this.express.use(bodyParser.json());
     this.express.use(bodyParser.urlencoded({ extended: true }));
-    this.express.use(Middleware);
+    this.express.use(requestLogger);
   }
 
   private setupRoutes(): void {

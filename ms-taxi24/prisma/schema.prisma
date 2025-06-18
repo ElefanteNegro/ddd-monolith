@@ -24,12 +24,13 @@ model User {
 }
 
 model Driver {
-  id     String  @id @default(uuid())
-  active Boolean @default(true)
-  userId String  @unique
-  car    Car?
-  user   User    @relation(fields: [userId], references: [id])
-  trips  Trip[]
+  id            String  @id @default(uuid())
+  active        Boolean @default(true)
+  userId        String  @unique
+  licenseNumber String?
+  car           Car?
+  user          User    @relation(fields: [userId], references: [id])
+  trips         Trip[]
 
   @@map("drivers")
 }

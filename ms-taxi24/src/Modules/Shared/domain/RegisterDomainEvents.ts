@@ -11,7 +11,11 @@ import { DriverService } from '@Modules/Drivers/application/services/DriverServi
 import { DriverRepository } from '@Modules/Drivers/infrastructure/repositories/DriverRepository';
 import { PassengerService } from '@Modules/Passengers/application/services/PassengerService';
 import { PassengerRepository } from '@Modules/Passengers/infrastructure/repositories/PassengerRepository';
+import { UserService } from '@Modules/Users/application/services/UserService';
+import { UserRepository } from '@Modules/Users/infrastructure/repositories/UserRepository';
 import { container } from '@Shared/infrastructure/container';
+import { handleDriverCreationFailed } from '@Modules/Users/application/handlers/DriverCreationFailedHandler';
+import { DriverCreationFailedEvent } from '@Modules/Drivers/model/events/DriverCreationFailedEvent';
 
 export const registerDomainEvents = (): void => {
   const { logger, prisma } = container;
@@ -19,10 +23,12 @@ export const registerDomainEvents = (): void => {
   // Initialize repositories
   const driverRepository = new DriverRepository(prisma, logger);
   const passengerRepository = new PassengerRepository(prisma, logger);
+  const userRepository = new UserRepository(prisma, logger);
   
   // Initialize services
   const driverService = new DriverService(driverRepository, logger);
   const passengerService = new PassengerService(passengerRepository, logger);
+  const userService = new UserService(userRepository, logger);
   
   // Register event handlers
   DomainEventDispatcher.register<DriverUserCreatedEvent>(
@@ -43,6 +49,11 @@ export const registerDomainEvents = (): void => {
   DomainEventDispatcher.register<TripStatusChangedEvent>(
     'TripStatusChangedEvent', 
     handleTripStatusChanged
+  );
+  
+  DomainEventDispatcher.register<DriverCreationFailedEvent>(
+    'DriverCreationFailedEvent',
+    handleDriverCreationFailed(userService, logger)
   );
   
   logger.info('Domain event handlers registered successfully');

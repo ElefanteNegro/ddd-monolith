@@ -25,6 +25,8 @@ export class UserController {
   ) {}
 
   createUser = async (req: Request, res: Response): Promise<void> => {
+    console.log('REQ.BODY:', req.body);
+    this.logger.info('Valores recibidos en req.body:', req.body);
     const uuid = new Uuid(uuidv4());
     const name = new Name(req.body.name);
     const lastName = new LastName(req.body.lastName);
@@ -51,6 +53,7 @@ export class UserController {
     });
 
     if (!response.success) {
+      this.logger.error('User creation failed:', response.message);
       throw new ValidationError(response.message || 'Error creating new user');
     }
 

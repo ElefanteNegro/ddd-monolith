@@ -11,7 +11,7 @@ import { User } from '@Modules/Users/model/User';
 export class UserRepository extends BaseRepository<UserDTO, string> {
   constructor(
     private readonly prisma: PrismaClientInterface = prisma,
-    logger: Logger = new WinstonLogger()
+    logger: Logger = WinstonLogger.getInstance()
   ) {
     super(logger);
   }
@@ -27,7 +27,7 @@ export class UserRepository extends BaseRepository<UserDTO, string> {
           lastName: user.lastName,
           email: user.email,
           user: userData.user,
-          password: userData.password,
+          password: (user as any).password,
           phone: user.phone,
           role: userData.role || 'PASSENGER'
         }

@@ -31,20 +31,45 @@ export class DriverService {
     userId: string
   ): Promise<InternalResponse> {
     try {
+      this.logger.info('[DriverService] Intentando guardar driver', {
+        id,
+        email: email.value,
+        active: active.value,
+        userId
+      });
+
       const driver: DriverInterface = {
         id,
         userId,
-        licenseNumber: 'TEMP-LICENSE',
         active: active.value
       };
 
+      this.logger.info('[DriverService] Driver creado en memoria', {
+        driverId: driver.id,
+        userId: driver.userId,
+        active: driver.active
+      });
+
       const event = new DriverCreatedEvent(driver.id, email.value);
       DomainEventDispatcher.dispatch(event);
-
       const result = await this.driverRepository.save(driver);
+
+      this.logger.info('[DriverService] Driver guardado en base de datos', {
+        driverId: result.id,
+        userId: result.userId,
+        active: result.active
+      });
+
       return { success: true, data: result };
     } catch (error) {
-      this.logger.error(error);
+      this.logger.error('[DriverService] Error creando driver', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        id,
+        email: email.value,
+        active: active.value,
+        userId
+      });
       throw new CaseUseException('Error creating driver');
     }
   }

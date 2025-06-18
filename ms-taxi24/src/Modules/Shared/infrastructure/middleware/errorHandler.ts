@@ -8,6 +8,7 @@ export class ErrorHandler {
   constructor(private readonly logger: Logger = container.logger) {}
 
   public handle = (err: Error, req: Request, res: Response, next: NextFunction): void => {
+    console.log('Error occurred:', err);
     this.logger.error('Error occurred:', {
       error: err,
       requestId: req.context?.requestId,

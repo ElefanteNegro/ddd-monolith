@@ -49,20 +49,80 @@ export class UserService {
 
   async create(userData: UserInterface): Promise<InternalResponse> {
     try {
+      this.logger.info('[UserService] Iniciando creación de usuario', { 
+        userData: { ...userData, password: '[REDACTED]' } 
+      });
+
       const user = new User(userData);
       await user.setPassword(userData.password);
-      await this.userRepository.save(userData);
       
+      this.logger.info('[UserService] Usuario creado en memoria', { 
+        userId: user.id,
+        role: userData.role 
+      });
+
+      // Guardar usuario y obtener el usuario creado con id real
+      const savedUser = await this.userRepository.save({ ...userData, password: (user as any).password });
+      
+      this.logger.info('[UserService] Usuario guardado en base de datos', { 
+        userId: savedUser.id,
+        role: savedUser.role,
+        email: savedUser.email 
+      });
+
       // Publicar el evento específico según el rol
-      if (userData.role === 'DRIVER') {
-        await DomainEventDispatcher.dispatch(new DriverUserCreatedEvent(userData));
-      } else if (userData.role === 'PASSENGER') {
-        await DomainEventDispatcher.dispatch(new PassengerUserCreatedEvent(userData));
+      if (savedUser.role === 'DRIVER') {
+        this.logger.info('[UserService] Preparando DriverUserCreatedEvent', { 
+          userId: savedUser.id 
+        });
+
+        // Mapear a UserInterface para el evento
+        const eventUser: UserInterface = {
+          id: savedUser.id,
+          name: savedUser.name,
+          lastName: savedUser.lastName,
+          email: savedUser.email,
+          user: savedUser.user || '',
+          password: '', // No es necesario para el evento
+          phone: savedUser.phone,
+          role: savedUser.role as any,
+          active: true,
+          createdAt: savedUser.createdAt
+        };
+
+        this.logger.info('[UserService] Disparando DriverUserCreatedEvent', { 
+          userId: savedUser.id,
+          eventData: { ...eventUser, password: '[REDACTED]' }
+        });
+
+        await DomainEventDispatcher.dispatch(new DriverUserCreatedEvent(eventUser));
+        
+        this.logger.info('[UserService] DriverUserCreatedEvent disparado exitosamente', { 
+          userId: savedUser.id 
+        });
+      } else if (savedUser.role === 'PASSENGER') {
+        this.logger.info('[UserService] Disparando PassengerUserCreatedEvent', { savedUser });
+        const eventUser: UserInterface = {
+          id: savedUser.id,
+          name: savedUser.name,
+          lastName: savedUser.lastName,
+          email: savedUser.email,
+          user: savedUser.user || '',
+          password: '',
+          phone: savedUser.phone,
+          role: savedUser.role as any,
+          active: true,
+          createdAt: savedUser.createdAt
+        };
+        await DomainEventDispatcher.dispatch(new PassengerUserCreatedEvent(eventUser));
       }
-      
       return { success: true, message: 'User created successfully' };
     } catch (error) {
-      this.logger.error(error);
+      this.logger.error('[UserService] Error creando usuario', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        userData: { ...userData, password: '[REDACTED]' }
+      });
       return { success: false, message: 'Error creating user' };
     }
   }

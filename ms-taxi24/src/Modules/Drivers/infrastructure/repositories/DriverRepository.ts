@@ -4,6 +4,7 @@ import { Logger } from '@Modules/Shared/domain/interfaces/Logger';
 import { BaseRepository } from '@Modules/Shared/domain/interfaces/Repository';
 import { DriverDTO } from '@Modules/Drivers/model/DriverDTO';
 import { toDriverDTO } from '@Modules/Drivers/model/Mappers/DriverMapper';
+import { Prisma } from '@prisma/client';
 
 export class DriverRepository extends BaseRepository<DriverDTO, string> {
   constructor(
@@ -25,15 +26,42 @@ export class DriverRepository extends BaseRepository<DriverDTO, string> {
     }
   }
 
-  async save(driverData: Omit<DriverInterface, 'id'>): Promise<DriverDTO> {
+  async save(driver: DriverInterface): Promise<DriverInterface> {
     try {
-      const driver = await this.prisma.driver.create({
-        data: driverData,
-        include: { user: true }
+      this.logger.info('DriverRepository.save - Iniciando guardado de conductor', {
+        driverId: driver.id,
+        userId: driver.userId,
+        active: driver.active
       });
-      return toDriverDTO(driver);
+
+      const result = await this.prisma.driver.create({
+        data: {
+          id: driver.id,
+          userId: driver.userId,
+          active: driver.active
+        }
+      });
+
+      this.logger.info('DriverRepository.save - Conductor guardado exitosamente', {
+        driverId: result.id,
+        userId: result.userId,
+        active: result.active
+      });
+
+      return result;
     } catch (error) {
-      return this.handleError(error, 'Error saving driver');
+      this.logger.error('DriverRepository.save - Error al guardar conductor', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        driverId: driver.id,
+        userId: driver.userId,
+        active: driver.active,
+        prismaError: error instanceof Prisma.PrismaClientKnownRequestError ? {
+          code: error.code,
+          meta: error.meta
+        } : undefined
+      });
+      throw error;
     }
   }
 
